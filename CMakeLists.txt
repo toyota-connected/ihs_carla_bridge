@@ -29,13 +29,40 @@ option(IHS_CARLA_BRIDGE_TESTS "Build the transport tests" ON)
 add_library(ihs_vke_transport STATIC
         src/scm_rights.cc
         src/session.cc
-        src/server.cc)
+        src/server.cc
+        src/shell_export_source.cc
+        src/bridge.cc)
 target_include_directories(ihs_vke_transport
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_options(ihs_vke_transport PRIVATE -Wall -Wextra -Wpedantic)
 find_package(Threads REQUIRED)
-target_link_libraries(ihs_vke_transport PUBLIC Threads::Threads)
+# ${CMAKE_DL_LIBS} provides dlsym for ShellExportSource's symbol resolution.
+target_link_libraries(ihs_vke_transport PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+
+# The deployable dart:ffi module: one SHARED object built from all the transport
+# sources, exporting ONLY the four ihs_carla_bridge_* C ABI functions (each
+# tagged IHS_CB_EXPORT / __attribute__((visibility("default")))); everything
+# else -- the ihs_vke::* internals -- is hidden. The static lib above stays as
+# the tests' link target; this is what ships.
+add_library(ihs_carla_bridge SHARED
+        src/scm_rights.cc
+        src/session.cc
+        src/server.cc
+        src/shell_export_source.cc
+        src/bridge.cc)
+target_include_directories(ihs_carla_bridge
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_options(ihs_carla_bridge PRIVATE -Wall -Wextra -Wpedantic)
+set_target_properties(ihs_carla_bridge PROPERTIES
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN ON)
+target_link_libraries(ihs_carla_bridge PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+# Pin the dynamic export table to exactly the four C ABI symbols; localize the
+# rest (incl. std::thread's vague-linkage instantiations).
+target_link_options(ihs_carla_bridge PRIVATE
+        "LINKER:--version-script=${CMAKE_CURRENT_SOURCE_DIR}/src/module_exports.map")
 
 if (IHS_CARLA_BRIDGE_TESTS)
     enable_testing()
@@ -56,4 +83,10 @@ if (IHS_CARLA_BRIDGE_TESTS)
     target_include_directories(server_test
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME server COMMAND server_test)
+
+    add_executable(bridge_test test/bridge_test.cc)
+    target_link_libraries(bridge_test PRIVATE ihs_vke_transport)
+    target_include_directories(bridge_test
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_test(NAME bridge COMMAND bridge_test)
 endif ()

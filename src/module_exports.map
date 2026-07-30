@@ -1,0 +1,13 @@
+# Linker version script for the ihs_carla_bridge dart:ffi module. Export ONLY
+# the flat C ABI; localize everything else -- including std::thread's
+# vague-linkage internals -- so the .so's dynamic symbol table is exactly the
+# four ihs_carla_bridge_* functions.
+{
+  global:
+    ihs_carla_bridge_create;
+    ihs_carla_bridge_start;
+    ihs_carla_bridge_stop;
+    ihs_carla_bridge_destroy;
+  local:
+    *;
+};
