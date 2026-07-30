@@ -1,0 +1,5 @@
+# Chromium-derived style, matching toyota-connected/ivi-homescreen.
+BasedOnStyle: Google
+ColumnLimit: 80
+DerivePointerAlignment: false
+PointerAlignment: Left
