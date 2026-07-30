@@ -28,7 +28,8 @@ option(IHS_CARLA_BRIDGE_TESTS "Build the transport tests" ON)
 # steps.
 add_library(ihs_vke_transport STATIC
         src/scm_rights.cc
-        src/session.cc)
+        src/session.cc
+        src/server.cc)
 target_include_directories(ihs_vke_transport
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -49,4 +50,10 @@ if (IHS_CARLA_BRIDGE_TESTS)
     target_include_directories(session_test
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME session COMMAND session_test)
+
+    add_executable(server_test test/server_test.cc)
+    target_link_libraries(server_test PRIVATE ihs_vke_transport)
+    target_include_directories(server_test
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_test(NAME server COMMAND server_test)
 endif ()

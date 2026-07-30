@@ -48,6 +48,11 @@ class ExportSource {
 
   // Rebuild the pool at a new extent. Return true if a new table is available.
   virtual bool on_resize(uint32_t width, uint32_t height) = 0;
+
+  // A consumer completed the handshake / disconnected. Production switches the
+  // backend pacing (consumer-driven vs free-run) here.
+  virtual void on_consumer_attached() {}
+  virtual void on_consumer_detached() {}
 };
 
 }  // namespace ihs_vke
