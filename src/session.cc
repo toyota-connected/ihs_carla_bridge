@@ -238,11 +238,6 @@ void Session::Run() {
       break;  // unrecoverable poll error.
     }
 
-    // A hung-up or errored socket ends the session.
-    if ((pfds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) != 0) {
-      break;
-    }
-
     // Wakeup: drain the eventfd counter, then flush pending presents.
     if ((pfds[1].revents & POLLIN) != 0) {
       uint64_t counter = 0;
@@ -313,6 +308,8 @@ void Session::Run() {
       if (done) {
         break;
       }
+    } else if ((pfds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) != 0) {
+      break;  // peer hung up with nothing left to read.
     }
   }
 }
