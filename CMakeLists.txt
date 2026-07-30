@@ -27,11 +27,14 @@ option(IHS_CARLA_BRIDGE_TESTS "Build the transport tests" ON)
 # session, IO thread, and the dart:ffi module build on top of this in later
 # steps.
 add_library(ihs_vke_transport STATIC
-        src/scm_rights.cc)
+        src/scm_rights.cc
+        src/session.cc)
 target_include_directories(ihs_vke_transport
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
         PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_compile_options(ihs_vke_transport PRIVATE -Wall -Wextra -Wpedantic)
+find_package(Threads REQUIRED)
+target_link_libraries(ihs_vke_transport PUBLIC Threads::Threads)
 
 if (IHS_CARLA_BRIDGE_TESTS)
     enable_testing()
@@ -40,4 +43,10 @@ if (IHS_CARLA_BRIDGE_TESTS)
     target_include_directories(scm_rights_test
             PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
     add_test(NAME scm_rights COMMAND scm_rights_test)
+
+    add_executable(session_test test/session_test.cc)
+    target_link_libraries(session_test PRIVATE ihs_vke_transport)
+    target_include_directories(session_test
+            PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+    add_test(NAME session COMMAND session_test)
 endif ()
