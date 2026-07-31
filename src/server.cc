@@ -28,6 +28,7 @@
 #include <utility>
 
 #include "export_source.h"
+#include "ihs_carla_bridge/bridge_c_api.h"
 #include "session.h"
 
 namespace ihs_vke {
@@ -155,8 +156,14 @@ void Server::AcceptLoop() {
     }
     if (session.Handshake()) {
       source_.on_consumer_attached();
+      if (on_state_) {
+        on_state_(IHS_CB_STATE_CONSUMER_CONNECTED);
+      }
       session.Run();
       source_.on_consumer_detached();
+      if (on_state_) {
+        on_state_(IHS_CB_STATE_LISTENING);
+      }
     }
     {
       std::lock_guard<std::mutex> lk(session_mutex_);

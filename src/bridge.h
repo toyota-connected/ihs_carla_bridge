@@ -23,6 +23,7 @@
 #ifndef IHS_CARLA_BRIDGE_BRIDGE_H_
 #define IHS_CARLA_BRIDGE_BRIDGE_H_
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 #include <utility>
@@ -57,13 +58,23 @@ class Bridge {
   // Clear the shell frame listener and stop the Server. Idempotent.
   void Stop();
 
+  // Register the Dart native SendPort for BridgeState events (0 clears). Posts
+  // the current state immediately so a freshly attached listener is seeded.
+  void SetEventPort(int64_t port);
+
  private:
   // Shell raster-thread present callback: forwards to the Server, which is
   // thread-safe. `user` is the owning Bridge.
   static void FrameThunk(uint32_t slot, uint32_t frame_seq, void* user);
 
+  // Record and post a BridgeState transition (IHS_CB_STATE_*) to the event port
+  // if one is set and the Dart DL API is initialized. Thread-safe.
+  void PostState(int32_t code);
+
   ShellExportSource source_;
   Server server_;
+  std::atomic<int64_t> event_port_{0};  // Dart SendPort; 0 = none
+  std::atomic<int32_t> state_{0};       // last state (IHS_CB_STATE_IDLE)
 };
 
 }  // namespace ihs_vke

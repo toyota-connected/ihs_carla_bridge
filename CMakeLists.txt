@@ -13,13 +13,22 @@
 # limitations under the License.
 
 cmake_minimum_required(VERSION 3.20)
-project(ihs_carla_bridge LANGUAGES CXX VERSION 0.1.0)
+# C is needed for the vendored Dart DL API (dart_api_dl.c), used by the
+# BridgeState event stream to post to a Dart native port.
+project(ihs_carla_bridge LANGUAGES C CXX VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(IHS_CARLA_BRIDGE_TESTS "Build the transport tests" ON)
+
+# Vendored Dart native (dynamic-linking) API. dart_api_dl.c is compiled into the
+# module so it can Dart_PostCObject to a Dart native port; the headers are BSD
+# (Dart authors). Only bridge.cc references them, but both library targets
+# include the source so the static test lib links identically to the module.
+set(IHS_CB_DART_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/dart-sdk/include)
+set(IHS_CB_DART_SRC ${IHS_CB_DART_DIR}/dart_api_dl.c)
 
 # The ihs-vk-export wire transport: framed messages + SCM_RIGHTS fd passing over
 # a Unix SEQPACKET socket. Header-only contracts (wire_protocol.h / vk_export.h)
@@ -31,31 +40,37 @@ add_library(ihs_vke_transport STATIC
         src/session.cc
         src/server.cc
         src/shell_export_source.cc
-        src/bridge.cc)
+        src/bridge.cc
+        ${IHS_CB_DART_SRC})
 target_include_directories(ihs_vke_transport
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_compile_options(ihs_vke_transport PRIVATE -Wall -Wextra -Wpedantic)
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${IHS_CB_DART_DIR})
+# -Wpedantic only on our own C++; the vendored C file uses its own conventions.
+target_compile_options(ihs_vke_transport PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic>)
 find_package(Threads REQUIRED)
 # ${CMAKE_DL_LIBS} provides dlsym for ShellExportSource's symbol resolution.
 target_link_libraries(ihs_vke_transport PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
 
 # The deployable dart:ffi module: one SHARED object built from all the transport
-# sources, exporting ONLY the four ihs_carla_bridge_* C ABI functions (each
-# tagged IHS_CB_EXPORT / __attribute__((visibility("default")))); everything
-# else -- the ihs_vke::* internals -- is hidden. The static lib above stays as
-# the tests' link target; this is what ships.
+# sources, exporting ONLY the ihs_carla_bridge_* C ABI functions (each tagged
+# IHS_CB_EXPORT / __attribute__((visibility("default")))); everything else --
+# the ihs_vke::* internals and the vendored Dart DL API -- is hidden. The static
+# lib above stays as the tests' link target; this is what ships.
 add_library(ihs_carla_bridge SHARED
         src/scm_rights.cc
         src/session.cc
         src/server.cc
         src/shell_export_source.cc
-        src/bridge.cc)
+        src/bridge.cc
+        ${IHS_CB_DART_SRC})
 target_include_directories(ihs_carla_bridge
         PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
-target_compile_options(ihs_carla_bridge PRIVATE -Wall -Wextra -Wpedantic)
+        PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src ${IHS_CB_DART_DIR})
+target_compile_options(ihs_carla_bridge PRIVATE
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall -Wextra -Wpedantic>)
 set_target_properties(ihs_carla_bridge PROPERTIES
+        C_VISIBILITY_PRESET hidden
         CXX_VISIBILITY_PRESET hidden
         VISIBILITY_INLINES_HIDDEN ON)
 target_link_libraries(ihs_carla_bridge PUBLIC Threads::Threads ${CMAKE_DL_LIBS})

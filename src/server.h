@@ -28,6 +28,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -46,6 +47,13 @@ class Server {
 
   Server(const Server&) = delete;
   Server& operator=(const Server&) = delete;
+
+  // Observe consumer connect/disconnect. The callback receives an
+  // IHS_CB_STATE_* code (CONSUMER_CONNECTED on attach, LISTENING on detach) and
+  // runs on the IO thread. Set before Start(); pass {} to clear.
+  void SetStateObserver(std::function<void(int32_t)> cb) {
+    on_state_ = std::move(cb);
+  }
 
   // Create/bind/listen the socket and spawn the accept thread. Returns false
   // (after cleaning up) on any setup failure.
@@ -75,6 +83,8 @@ class Server {
 
   std::mutex session_mutex_;
   Session* current_session_ = nullptr;  // guarded by session_mutex_
+
+  std::function<void(int32_t)> on_state_;  // consumer connect/disconnect
 };
 
 }  // namespace ihs_vke
