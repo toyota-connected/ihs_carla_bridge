@@ -1,0 +1,17 @@
+name: carla_ivi
+description: >-
+  Dart FFI bindings and a BridgeState stream for the ihs_carla_bridge module,
+  which shares an ivi-homescreen headless-vulkan frame pool with a CARLA
+  (Unreal Engine, Vulkan) consumer over a Unix socket.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.5.0
+
+dependencies:
+  ffi: ^2.1.0
+
+dev_dependencies:
+  ffigen: ^18.0.0
+  test: ^1.25.0
