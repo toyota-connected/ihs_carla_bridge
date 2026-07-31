@@ -42,12 +42,19 @@ module reports them over a Dart native port.
 dart run ffigen --config ffigen.yaml
 ```
 
+## Example
+
+`example/` is a Flutter app that opens the bridge, starts it, and renders the
+live `BridgeState`. Run it inside the ivi-homescreen headless-vulkan shell (so
+`start()` resolves the shell's export API) with `IHS_VK_BRIDGE_SOCKET` /
+`IHS_CB_LIB` set. It is the end-to-end harness for the package.
+
 ## Status
 
 Lifecycle (create / start / stop / dispose) and the `BridgeState` stream are
 wired and covered by `test/carla_ivi_test.dart` (set `IHS_CB_LIB` to a built
 `libihs_carla_bridge.so`). The stream rides the native event port added to the C
 ABI (`ihs_carla_bridge_init_dart_api` / `ihs_carla_bridge_set_event_port`); the
-module posts each transition via the vendored Dart DL API. Live `listening` /
-`consumerConnected` transitions require the module running inside the
-headless-vulkan shell with a real consumer.
+module posts each transition via the vendored Dart DL API. Validated on a
+Raspberry Pi 4 (V3D) via the example app: `idle → listening → consumerConnected
+→ listening` as a consumer connects and disconnects.
