@@ -86,6 +86,55 @@ class CarlaBridgeBindings {
       'ihs_carla_bridge_destroy');
   late final _ihs_carla_bridge_destroy = _ihs_carla_bridge_destroyPtr
       .asFunction<void Function(ffi.Pointer<IhsCarlaBridge>)>();
+
+  /// Initialize the Dart native (dynamic-linking) API with the data pointer from
+  /// `NativeApi.initializeApiDLData`. Call once per process before
+  /// ihs_carla_bridge_set_event_port. Returns 0 on success (non-zero on failure),
+  /// matching Dart_InitializeApiDL. Required only for the BridgeState event stream.
+  int ihs_carla_bridge_init_dart_api(
+    ffi.Pointer<ffi.Void> data,
+  ) {
+    return _ihs_carla_bridge_init_dart_api(
+      data,
+    );
+  }
+
+  late final _ihs_carla_bridge_init_dart_apiPtr =
+      _lookup<ffi.NativeFunction<ffi.Int Function(ffi.Pointer<ffi.Void>)>>(
+          'ihs_carla_bridge_init_dart_api');
+  late final _ihs_carla_bridge_init_dart_api =
+      _ihs_carla_bridge_init_dart_apiPtr
+          .asFunction<int Function(ffi.Pointer<ffi.Void>)>();
+
+  /// Register a Dart native SendPort (ReceivePort.sendPort.nativePort) to receive
+  /// BridgeState transitions as int64 messages (IHS_CB_STATE_*). Pass 0 to clear.
+  /// Null-safe. The current state is posted immediately so a fresh listener is not
+  /// left blind until the next transition.
+  void ihs_carla_bridge_set_event_port(
+    ffi.Pointer<IhsCarlaBridge> bridge,
+    int port,
+  ) {
+    return _ihs_carla_bridge_set_event_port(
+      bridge,
+      port,
+    );
+  }
+
+  late final _ihs_carla_bridge_set_event_portPtr = _lookup<
+      ffi.NativeFunction<
+          ffi.Void Function(ffi.Pointer<IhsCarlaBridge>,
+              ffi.Int64)>>('ihs_carla_bridge_set_event_port');
+  late final _ihs_carla_bridge_set_event_port =
+      _ihs_carla_bridge_set_event_portPtr
+          .asFunction<void Function(ffi.Pointer<IhsCarlaBridge>, int)>();
 }
 
 final class IhsCarlaBridge extends ffi.Opaque {}
+
+const int IHS_CB_STATE_IDLE = 0;
+
+const int IHS_CB_STATE_LISTENING = 1;
+
+const int IHS_CB_STATE_CONSUMER_CONNECTED = 2;
+
+const int IHS_CB_STATE_STOPPED = 3;

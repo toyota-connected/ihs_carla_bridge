@@ -15,6 +15,7 @@ native loader.
 import 'package:carla_ivi/carla_ivi.dart';
 
 final bridge = CarlaBridge.open('/run/user/1000/ihs-vk-export.sock');
+bridge.states.listen((s) => print('bridge state: $s'));
 if (!bridge.start()) {
   // Not running inside the headless-vulkan shell, or the socket is busy.
 }
@@ -28,6 +29,10 @@ bridge.dispose();
 returns `false` when the host is not the headless-vulkan shell (no export API is
 resolved) or the socket cannot be bound.
 
+`state` is the current [BridgeState] and `states` streams transitions
+(`idle` → `listening` → `consumerConnected` → `listening` … → `stopped`) as the
+module reports them over a Dart native port.
+
 ## Bindings
 
 `lib/src/carla_ivi_bindings.g.dart` is generated from
@@ -39,8 +44,10 @@ dart run ffigen --config ffigen.yaml
 
 ## Status
 
-Lifecycle (create / start / stop / dispose) is wired and covered by
-`test/carla_ivi_test.dart` (set `IHS_CB_LIB` to a built `libihs_carla_bridge.so`).
-The `BridgeState` vocabulary in `lib/src/bridge_state.dart` is in place; streaming
-live transitions over a Dart native port is the next step and needs a matching
-native event extension to the C ABI.
+Lifecycle (create / start / stop / dispose) and the `BridgeState` stream are
+wired and covered by `test/carla_ivi_test.dart` (set `IHS_CB_LIB` to a built
+`libihs_carla_bridge.so`). The stream rides the native event port added to the C
+ABI (`ihs_carla_bridge_init_dart_api` / `ihs_carla_bridge_set_event_port`); the
+module posts each transition via the vendored Dart DL API. Live `listening` /
+`consumerConnected` transitions require the module running inside the
+headless-vulkan shell with a real consumer.

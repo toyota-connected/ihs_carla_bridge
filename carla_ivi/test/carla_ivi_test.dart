@@ -76,6 +76,30 @@ void main() {
           : null,
     );
 
+    test(
+      'state transitions reach the Dart stream',
+      () async {
+        final socket = '${Directory.systemTemp.path}/carla_ivi_events.sock';
+        final bridge = CarlaBridge.open(socket, libraryName: libPath!);
+
+        // stop() posts a STOPPED transition over the native port even when the
+        // server never started; subscribe first, then trigger it. This proves
+        // init_dart_api / set_event_port / Dart_PostCObject / ReceivePort all
+        // work, without needing the headless-vulkan shell.
+        final stopped = bridge.states
+            .firstWhere((s) => s == BridgeState.stopped)
+            .timeout(const Duration(seconds: 3));
+        bridge.stop();
+        expect(await stopped, BridgeState.stopped);
+        expect(bridge.state, BridgeState.stopped);
+
+        bridge.dispose();
+      },
+      skip: libPath == null
+          ? 'libihs_carla_bridge.so not found (set IHS_CB_LIB)'
+          : null,
+    );
+
     test('open throws for a missing library', () {
       expect(
         () => CarlaBridge.open('/tmp/x.sock',
