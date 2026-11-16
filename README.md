@@ -19,10 +19,32 @@ include/ihs_carla_bridge/
                     (message framing + payloads; fds ride SCM_RIGHTS)
   vk_export.h       the shell's in-process C ABI this module consumes
                     (ihs_vk_export_get_api function table + pool descriptors)
+  bridge_c_api.h    the flat C ABI this module exports for dart:ffi
+                    (create / start / stop / destroy, Dart event port)
 src/
-  scm_rights.{h,cc} framed-message + fd-passing transport over a SEQPACKET socket
+  scm_rights.{h,cc}           framed-message + fd-passing transport over a
+                              SEQPACKET socket
+  export_source.h             the abstract image source a session pulls from
+                              (mocked in tests)
+  shell_export_source.{h,cc}  the production source: ihs_vk_export_get_api
+                              resolved with dlsym(RTLD_DEFAULT)
+  session.{h,cc}              one consumer: handshake, frame present/release,
+                              input, resize, bye
+  server.{h,cc}               listen socket and IO thread; one consumer at a
+                              time, listens again after a disconnect
+  bridge.{h,cc}               the coordinator: owns the source and server, and
+                              implements the C ABI
+  module_exports.map          linker script exporting only ihs_carla_bridge_*
 test/
-  scm_rights_test.cc  fd round-trip over a socketpair (no external deps)
+  scm_rights_test.cc  fd round-trip over a socketpair
+  session_test.cc     protocol session against a mock source
+  server_test.cc      accept, serve and reconnect
+  bridge_test.cc      the whole module over a real socket, against a fake
+                      shell ABI
+carla_ivi/
+  lib/                Dart FFI bindings (ffigen) and the BridgeState stream
+  test/               lifecycle and state stream tests
+  example/            Flutter app that runs the bridge in the shell
 ```
 
 ## Design notes
@@ -42,10 +64,32 @@ test/
 
 ## Status
 
-Foundational: the wire-protocol and shell-ABI contracts, and the SCM_RIGHTS
-transport with a passing fd round-trip test. Still to come: the socket session
-state machine + IO thread, the `carla_ivi` Dart package (ffigen bindings), and
-the shell-side `ihs_vk_export_get_api` implementation the module binds to.
+Working:
+
+- The wire protocol and shell ABI contracts, and the SCM_RIGHTS transport.
+- The listening server: accept, serve one consumer, and listen again when it
+  disconnects.
+- The session: the `ihs-vk-export` handshake (hello, caps, image table), frame
+  present and release, pointer input, resize, and bye. Readable input is
+  drained before a hangup is honored.
+- The bridge module: binds the shell's `ihs_vk_export_get_api` (in
+  ivi-homescreen's headless-vulkan backend) and exposes a C ABI
+  (`bridge_c_api.h`) for create, start, stop and destroy. State transitions are
+  posted to a Dart native port.
+- `carla_ivi`: the Dart FFI package that drives the bridge and streams its
+  state, with an example app.
+- Tests for the transport, session, server and bridge (`test/`), and for
+  `carla_ivi` (`carla_ivi/test/`).
+
+Validated on a Raspberry Pi 4 (V3D) with the example app: the bridge goes
+`idle → listening → consumerConnected → listening` as a consumer connects and
+disconnects.
+
+Not done yet:
+
+- Key input. `INPUT_KEY` is reserved in protocol v1 and ignored.
+- An end-to-end run with CARLA importing and drawing the frames. The Unreal
+  side is an `IhsVkExport` plugin in the CARLA tree and is not published yet.
 
 ## Build
 
