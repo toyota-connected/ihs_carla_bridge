@@ -45,6 +45,9 @@ carla_ivi/
   lib/                Dart FFI bindings (ffigen) and the BridgeState stream
   test/               lifecycle and state stream tests
   example/            Flutter app that runs the bridge in the shell
+unreal/
+  IhsVkExport/        the CARLA-side consumer: an Unreal Engine 5 plugin
+                      (source only; early, see Status)
 ```
 
 ## Design notes
@@ -89,7 +92,9 @@ Not done yet:
 
 - Key input. `INPUT_KEY` is reserved in protocol v1 and ignored.
 - An end-to-end run with CARLA importing and drawing the frames. The Unreal
-  side is an `IhsVkExport` plugin in the CARLA tree and is not published yet.
+  side is the `IhsVkExport` plugin in `unreal/`. So far it only requests the
+  Vulkan external-memory and semaphore device extensions and logs the device
+  UUID; the wire-protocol client and the texture import are not written yet.
 
 ## Build
 
@@ -99,3 +104,13 @@ ctest --test-dir build --output-on-failure
 ```
 
 Requires a C++23 compiler. Apache-2.0 licensed.
+
+The Unreal plugin is not part of the CMake build. Link it into a CARLA
+(Unreal Engine 5) checkout and build CARLA as usual:
+
+```
+ln -s "$PWD/unreal/IhsVkExport" <carla>/Unreal/CarlaUnreal/Plugins/IhsVkExport
+```
+
+Only the plugin's own source is kept here. It contains no Unreal Engine code,
+and its build output (`Binaries/`, `Intermediate/`) is not committed.
