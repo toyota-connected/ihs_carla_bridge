@@ -12,3 +12,7 @@ compile_commands.json
 *.swp
 *~
 .DS_Store
+
+# Unreal plugin build output
+/unreal/*/Binaries/
+/unreal/*/Intermediate/

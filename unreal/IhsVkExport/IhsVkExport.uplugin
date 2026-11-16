@@ -1,0 +1,21 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "IHS Vulkan Export Consumer",
+	"Description": "Imports ivi-homescreen headless-vulkan shared frames (the ihs-vk-export protocol) into UE textures for the instrument-cluster and IVI head-unit displays.",
+	"Category": "Rendering",
+	"CreatedBy": "Toyota Connected North America",
+	"EnabledByDefault": true,
+	"CanContainContent": false,
+	"IsBetaVersion": true,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "IhsVkExport",
+			"Type": "Runtime",
+			"LoadingPhase": "PostConfigInit",
+			"PlatformAllowList": [ "Linux" ]
+		}
+	]
+}
